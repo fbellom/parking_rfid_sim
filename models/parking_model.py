@@ -13,6 +13,7 @@ class ParkingEntry(BaseModel):
     status: str = "searching"  # 'searching', 'parked', 'leaving'
     status_start_time: datetime.datetime = None
     reason: str = "" # normal, no spot, 
+    gateid: str = ""
 
 
 class ParkingLotLocation(BaseModel):

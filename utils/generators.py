@@ -4,11 +4,15 @@ import numpy as np
 from scipy.stats import norm
 import csv
 import os
+import uuid
 
 
 def generate_random_string(length=6):
     return "".join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
+
+def generate_gate_id():
+    return uuid.uuid4().hex
 
 def generate_random_location(base_location, radius=0.01):
     return {
@@ -34,7 +38,7 @@ def calculate_event_probability(current_time, peak_mean, peak_std_dev):
 #         return (0.3, 0.7)  # 30% chance of entry, 70% chance of exit
 
 def initialize_csv(filename:str):
-    headers = ["RFID", "Size", "Driver Name", "Entry Time", "Exit Time", "Status"]
+    headers = ["RFID", "Size", "Driver Name", "Entry Time", "Exit Time", "Lat","Long","Status", "Last Status Change", "Gate"]
 
     file_exists = os.path.exists(filename)
 
@@ -47,8 +51,11 @@ def initialize_csv(filename:str):
     return file_exists
 
 def append_to_csv(filename:str, parking_record):
+    file_exists = os.path.exists(filename)
     with open(filename, 'a', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=parking_record.keys())
+        if not file_exists:
+            writer.writeheader()
         writer.writerow(parking_record)
 
 def generate_entry_exit_hourly_probs(

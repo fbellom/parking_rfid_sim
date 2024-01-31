@@ -33,6 +33,8 @@ MIN_SEARCHING_DURATION_IN_SECS = 120  # 2 minutes
 HOURS_PROBABILITY = generate_entry_exit_hourly_probs()
 NON_RUSH_HOURS_PROB_DICT = {"entry_prob": 0.5, "exit_prob": 0.5, "is_rush": False}
 PARKING_ACTIVITY_FILENAME= "parking_simulation_log.csv"
+GATE_HEX_UUID = generate_gate_id()
+
 
 # FastAPI Instance
 router = APIRouter(prefix=MODULE_PREFIX, tags=MODULE_TAGS)
@@ -58,6 +60,7 @@ def simulate_vehicle_entry():
         latitude=location["latitude"],
         longitude=location["longitude"],
         status="searching",
+        gateid=GATE_HEX_UUID,
     )
     entry.status_start_time = datetime.datetime.now()
     PARKING_DATA.append(entry.dict())
