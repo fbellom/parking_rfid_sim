@@ -42,20 +42,17 @@ def initialize_csv(filename:str):
 
     file_exists = os.path.exists(filename)
 
-    with open(filename, 'w', newline='') as file:
-        writer = csv.DictWriter(file, fieldnames=headers)
+    if not file_exists:
+        with open(filename, 'w', newline='') as file:
+            writer = csv.DictWriter(file, fieldnames=headers)
+            writer.writeheader()        
 
-        if not file_exists:
-            writer.writeheader()
-    
     return file_exists
 
 def append_to_csv(filename:str, parking_record):
-    file_exists = os.path.exists(filename)
+
     with open(filename, 'a', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=parking_record.keys())
-        if not file_exists:
-            writer.writeheader()
         writer.writerow(parking_record)
 
 def generate_entry_exit_hourly_probs(
