@@ -31,12 +31,6 @@ def calculate_event_probability(current_time, peak_mean, peak_std_dev):
     return np.exp(-0.5 * ((hour - peak_mean) / peak_std_dev) ** 2)
 
 
-# def get_entry_exit_probabilities(is_rush_hour):
-#     if is_rush_hour:
-#         return (0.7, 0.3)  # 70% chance of entry, 30% chance of exit
-#     else:
-#         return (0.3, 0.7)  # 30% chance of entry, 70% chance of exit
-
 def initialize_csv(filename:str):
     headers = ["RFID", "Size", "Driver Name", "Entry Time", "Exit Time", "Lat","Long","Status", "Last Status Change", "Gate"]
 
