@@ -12,13 +12,14 @@ class ParkingEntry(BaseModel):
     longitude: float
     status: str = "searching"  # 'searching', 'parked', 'leaving'
     status_start_time: datetime.datetime = None
-    reason: str = "" # normal, no spot, 
+    reason: str = ""  # normal, no spot,
     gateid: str = ""
 
 
 class ParkingLotLocation(BaseModel):
     latitude: float
     longitude: float
+
 
 class ParkingOcuppancy(BaseModel):
     spots_in_use: int = 0
@@ -32,10 +33,9 @@ class ParkingGateInfo(BaseModel):
     latitude: float = 0.0
     longitude: float = 0.0
 
+
 class ParkingSimulation(BaseModel):
     lot_size: int = 0
     gate_desc: str = ""
     latitude: float = 0.0
     longitude: float = 0.0
-
-

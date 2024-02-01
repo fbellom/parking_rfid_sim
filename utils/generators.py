@@ -14,6 +14,7 @@ def generate_random_string(length=6):
 def generate_gate_id():
     return uuid.uuid4().hex
 
+
 def generate_random_location(base_location, radius=0.01):
     return {
         "latitude": base_location["latitude"] + random.uniform(-radius, radius),
@@ -31,23 +32,35 @@ def calculate_event_probability(current_time, peak_mean, peak_std_dev):
     return np.exp(-0.5 * ((hour - peak_mean) / peak_std_dev) ** 2)
 
 
-def initialize_csv(filename:str):
-    headers = ["RFID", "Size", "Driver Name", "Entry Time", "Exit Time", "Lat","Long","Status", "Last Status Change", "Gate"]
+def initialize_csv(filename: str):
+    headers = [
+        "RFID",
+        "Size",
+        "Driver Name",
+        "Entry Time",
+        "Exit Time",
+        "Lat",
+        "Long",
+        "Status",
+        "Last Status Change",
+        "Gate",
+    ]
 
     file_exists = os.path.exists(filename)
 
     if not file_exists:
-        with open(filename, 'w', newline='') as file:
+        with open(filename, "w", newline="") as file:
             writer = csv.DictWriter(file, fieldnames=headers)
-            writer.writeheader()        
+            writer.writeheader()
 
     return file_exists
 
-def append_to_csv(filename:str, parking_record):
 
-    with open(filename, 'a', newline='') as file:
+def append_to_csv(filename: str, parking_record):
+    with open(filename, "a", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=parking_record.keys())
         writer.writerow(parking_record)
+
 
 def generate_entry_exit_hourly_probs(
     start: float = 7.0,
@@ -99,8 +112,8 @@ def adjust_probability_for_day_of_week(probability, day_of_week):
         return probability
     else:  # Weekend
         return probability * 0.5  # Decrease probability
-    
 
-def calculate_additional_search_time(occupancy_rate,searching_time_in_min):
+
+def calculate_additional_search_time(occupancy_rate, searching_time_in_min):
     # Example: Add up to 5 additional minutes based on occupancy
     return min(searching_time_in_min * occupancy_rate, searching_time_in_min)

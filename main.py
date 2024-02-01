@@ -47,7 +47,7 @@ ORIGINS = [
 ]
 
 # Allow these methods to be used
-METHODS = ["*"] #["GET", "POST", "PUT", "PATCH", "DELETE"]
+METHODS = ["*"]  # ["GET", "POST", "PUT", "PATCH", "DELETE"]
 
 # Only these headers are allowed
 # headers = ["Content-Type", "Authorization"]

@@ -1,7 +1,13 @@
 import asyncio
-from fastapi import APIRouter, HTTPException, status, Body, WebSocket 
+from fastapi import APIRouter, HTTPException, status, Body, WebSocket
 from fastapi_utils.tasks import repeat_every
-from models.parking_model import ParkingEntry, ParkingLotLocation, ParkingOcuppancy, ParkingGateInfo, ParkingSimulation
+from models.parking_model import (
+    ParkingEntry,
+    ParkingLotLocation,
+    ParkingOcuppancy,
+    ParkingGateInfo,
+    ParkingSimulation,
+)
 from utils.generators import *
 import datetime
 import logging
@@ -32,9 +38,9 @@ PARKING_DATA = None
 PARKING_LOT_SIZE = None
 PARKING_LOT_LOCATION = None
 GATE_HEX_UUID = None
-GATE_DESC= None
-SIMULATION_START=None
-SIMULATION_STOP=None
+GATE_DESC = None
+SIMULATION_START = None
+SIMULATION_STOP = None
 
 
 # Simulator Conditions to Create a More realistic behavior
@@ -47,9 +53,7 @@ HOURS_PROBABILITY = generate_entry_exit_hourly_probs()
 NON_RUSH_HOURS_PROB_DICT = {"entry_prob": 0.5, "exit_prob": 0.5, "is_rush": False}
 
 # Data Collector
-PARKING_ACTIVITY_FILENAME= "parking_simulation_log.csv"
-
-
+PARKING_ACTIVITY_FILENAME = "parking_simulation_log.csv"
 
 
 # FastAPI Instance
@@ -101,22 +105,29 @@ def simulate_vehicle_exit(vehicle=None):
         if vehicle["status"] == "searching":
             vehicle["reason"] = "lot_full"
         elif vehicle["status"] == "parked":
-            vehicle["reason"] = "normal_leaving"    
-        vehicle["status"] = "leaving"    
+            vehicle["reason"] = "normal_leaving"
+        vehicle["status"] = "leaving"
         append_to_csv(PARKING_ACTIVITY_FILENAME, vehicle)
         safely_remove_vehicle(vehicle)
 
 
 def simulate_vehicle_parking():
     current_time = datetime.datetime.now()
-    #Calculate ocuppancy rate
-    occupancy_rate = len([vehicle for vehicle in PARKING_DATA if vehicle["status"] == "parked"]) / PARKING_LOT_SIZE
+    # Calculate ocuppancy rate
+    occupancy_rate = (
+        len([vehicle for vehicle in PARKING_DATA if vehicle["status"] == "parked"])
+        / PARKING_LOT_SIZE
+    )
 
     # look for searching vehicles
     for vehicle in PARKING_DATA:
         if vehicle["status"] == "searching":
-            search_duration = (current_time - vehicle["status_start_time"]).total_seconds() / 60 #in minutes
-            additional_search_time = calculate_additional_search_time(occupancy_rate, (MIN_SEARCHING_DURATION_IN_SECS/60))
+            search_duration = (
+                current_time - vehicle["status_start_time"]
+            ).total_seconds() / 60  # in minutes
+            additional_search_time = calculate_additional_search_time(
+                occupancy_rate, (MIN_SEARCHING_DURATION_IN_SECS / 60)
+            )
             if search_duration >= additional_search_time:
                 vehicle["status"] = "parked"
                 vehicle["status_start_time"] = datetime.datetime.now()
@@ -128,29 +139,41 @@ def prepare_parking_data():
     # Convert datetime objects to strings
     serialized_data = []
     for entry in PARKING_DATA:
-        serialized_entry = {key: value.isoformat() if isinstance(value, datetime.datetime) else value for key, value in entry.items()}
+        serialized_entry = {
+            key: value.isoformat() if isinstance(value, datetime.datetime) else value
+            for key, value in entry.items()
+        }
         serialized_data.append(serialized_entry)
     return serialized_data
 
+
 def prepare_parking_util_data():
     utilization = ParkingOcuppancy(
-        spots_in_use= len([vehicle for vehicle in PARKING_DATA if vehicle["status"] == "parked"]),
-        spots_avail= PARKING_LOT_SIZE - len([vehicle for vehicle in PARKING_DATA if vehicle["status"] == "parked"]),
-        usage_rate= (len([vehicle for vehicle in PARKING_DATA if vehicle["status"] == "parked"])/PARKING_LOT_SIZE) * 100,
+        spots_in_use=len(
+            [vehicle for vehicle in PARKING_DATA if vehicle["status"] == "parked"]
+        ),
+        spots_avail=PARKING_LOT_SIZE
+        - len([vehicle for vehicle in PARKING_DATA if vehicle["status"] == "parked"]),
+        usage_rate=(
+            len([vehicle for vehicle in PARKING_DATA if vehicle["status"] == "parked"])
+            / PARKING_LOT_SIZE
+        )
+        * 100,
     )
-        
-    return utilization  
+
+    return utilization
+
 
 def prepare_gate_info():
-    gate_info =  ParkingGateInfo(
+    gate_info = ParkingGateInfo(
         gate_id=GATE_HEX_UUID,
         gate_desc=GATE_DESC,
         latitude=PARKING_LOT_LOCATION["latitude"],
         longitude=PARKING_LOT_LOCATION["longitude"],
-
     )
 
     return gate_info
+
 
 # Start a Simulation
 @router.on_event("startup")
@@ -160,11 +183,10 @@ async def simulate_parking_activity():
     Simulation Code
     """
 
-    #TODO: Validate Globals Has been set by the /start_simulation call
+    # TODO: Validate Globals Has been set by the /start_simulation call
     if PARKING_DATA is None:
         logger.warning("Initial Parking Info needed. Please use /start_sim")
-        return { "msg" : "use start_simulation to set the gate"}
-
+        return {"msg": "use start_simulation to set the gate"}
 
     logger.info(
         f"Starting Parking Activity Sensor Simulation for a Lot of {PARKING_LOT_SIZE} spots located at {PARKING_LOT_LOCATION}"
@@ -180,19 +202,17 @@ async def simulate_parking_activity():
     # Modify entry_prob based on day of week
     entry_prob = adjust_probability_for_day_of_week(entry_prob, current_day_of_week)
 
-
     exit_prob = HOURS_PROBABILITY.get(nearest_quarter_hour, NON_RUSH_HOURS_PROB_DICT)[
         "exit_prob"
     ]
-    
-
-
 
     logger.info(
         f" Initializers : Current Hour {current_hour} , Nearest Quarter Hour : {nearest_quarter_hour} ,Entry/Exit Prob: {entry_prob}/{exit_prob}"
     )
-    
-    parked_cars = len([vehicle for vehicle in PARKING_DATA if vehicle["status"] == "parked"])
+
+    parked_cars = len(
+        [vehicle for vehicle in PARKING_DATA if vehicle["status"] == "parked"]
+    )
     logger.info(f"Occupancy {parked_cars}/{PARKING_LOT_SIZE}")
     logger.info(f"Occupancy % {(parked_cars/PARKING_LOT_SIZE) * 100}")
 
@@ -203,22 +223,26 @@ async def simulate_parking_activity():
     # Delay before checking for exits
     await asyncio.sleep(5)  # Introduce a small delay
 
-    if PARKING_DATA: 
+    if PARKING_DATA:
         # Randomly select a vehicle for potential exit
         vehicle = random.choice(PARKING_DATA)
         time_in_current_status = (
             current_time - vehicle["status_start_time"]
         ).total_seconds()
-        adjusted_exit_prob =  exit_prob
+        adjusted_exit_prob = exit_prob
 
         if len(PARKING_DATA) == PARKING_LOT_SIZE:
             # Increase exit probability if the lot is full
             logger.info("Parking Lot Full")
             adjusted_exit_prob *= 1.2
-        elif len(PARKING_DATA) < PARKING_LOT_SIZE and HOURS_PROBABILITY.get(nearest_quarter_hour, NON_RUSH_HOURS_PROB_DICT)["is_rush"]:
+        elif (
+            len(PARKING_DATA) < PARKING_LOT_SIZE
+            and HOURS_PROBABILITY.get(nearest_quarter_hour, NON_RUSH_HOURS_PROB_DICT)[
+                "is_rush"
+            ]
+        ):
             # Adjust exit probability during rush hour
             adjusted_exit_prob *= 0.9
-
 
         should_exit = random.random() < adjusted_exit_prob
 
@@ -232,7 +256,6 @@ async def simulate_parking_activity():
             if should_exit:
                 logger.info(f"Vehicle Exiting Parking Lot: {vehicle}")
                 simulate_vehicle_exit(vehicle)
-                
 
     # Additionally, simulate parking and exiting
     if len(PARKING_DATA) < PARKING_LOT_SIZE:
@@ -248,8 +271,8 @@ def index():
     }
 
 
-@router.post("/start_sim",status_code=status.HTTP_201_CREATED)
-async def start_simulation(parking:ParkingSimulation ):
+@router.post("/start_sim", status_code=status.HTTP_201_CREATED)
+async def start_simulation(parking: ParkingSimulation):
     global PARKING_LOT_LOCATION
     global PARKING_LOT_SIZE
     global PARKING_DATA
@@ -267,14 +290,14 @@ async def start_simulation(parking:ParkingSimulation ):
     PARKING_LOT_SIZE = parking.lot_size
     PARKING_DATA = []
     GATE_HEX_UUID = generate_gate_id()
-    GATE_DESC=parking.gate_desc
+    GATE_DESC = parking.gate_desc
     SIMULATION_START = datetime.datetime.now()
 
     logger.info(f"Simulation started for parking lot at gate : {GATE_DESC}")
     return {"message": f"Simulation started for parking lot at gate : {GATE_DESC}  "}
 
 
-@router.put("/stop_sim",status_code=status.HTTP_202_ACCEPTED)
+@router.put("/stop_sim", status_code=status.HTTP_202_ACCEPTED)
 async def stop_simulation():
     """
     STOP All Simulations
@@ -294,9 +317,9 @@ async def stop_simulation():
     PARKING_LOT_LOCATION = None
     PARKING_LOT_SIZE = None
     PARKING_DATA = None
-    PARKING_ACTIVITY_FILENAME=None
+    PARKING_ACTIVITY_FILENAME = None
     GATE_HEX_UUID = None
-    GATE_DESC=None
+    GATE_DESC = None
     SIMULATION_STOP = datetime.datetime.now()
 
     duration = SIMULATION_STOP - SIMULATION_START
@@ -304,15 +327,16 @@ async def stop_simulation():
     duration.total_seconds()
     logger.info(f"Simulation Stopped. Duration: {str(duration.total_seconds())} secs")
 
-    return {"message": f"Simulation Stopped. Duration: {str(duration.total_seconds())} secs"}
+    return {
+        "message": f"Simulation Stopped. Duration: {str(duration.total_seconds())} secs"
+    }
+
 
 @router.get("/available", response_model=ParkingOcuppancy)
 async def get_parking_spot_availability():
-
     utilization = prepare_parking_util_data()
 
     return utilization
-
 
 
 @router.get("/detail", response_model=List[ParkingEntry])
@@ -332,18 +356,17 @@ async def websocket_parking_activity(websocket: WebSocket):
     await websocket.accept()
     data_type = websocket.query_params.get("type", "activity")
     while True:
-        #Prepare Data
+        # Prepare Data
         if data_type == "activity":
             data = prepare_parking_data()
         elif data_type == "util":
             data = prepare_parking_util_data()
             data = data.dict()
         else:
-            data = {}        
+            data = {}
 
-        #send data to client
+        # send data to client
         await websocket.send_json(data)
 
         # add some time before next update
         await asyncio.sleep(10)
-
