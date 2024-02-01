@@ -1,7 +1,7 @@
 import asyncio
-from fastapi import APIRouter, HTTPException, status, Body, WebSocket
+from fastapi import APIRouter, HTTPException, status, Body, WebSocket 
 from fastapi_utils.tasks import repeat_every
-from models.parking_model import ParkingEntry, ParkingLotLocation, ParkingOcuppancy
+from models.parking_model import ParkingEntry, ParkingLotLocation, ParkingOcuppancy, ParkingGateInfo, ParkingSimulation
 from utils.generators import *
 import datetime
 import logging
@@ -20,11 +20,24 @@ MODULE_TAGS = [MODULE_NAME]
 MODULE_DESCRIPTION = ""
 
 # Simulation DATA Mockup
-PARKING_DATA = []
-PARKING_LOT_SIZE = 250
-PARKING_LOT_LOCATION = {"latitude": 18.40392191193637, "longitude": -66.04436176129046}
+# PARKING_DATA = []
+# PARKING_LOT_SIZE = 250
+# PARKING_LOT_LOCATION = {"latitude": 18.40392191193637, "longitude": -66.04436176129046}
+# PARKING_ACTIVITY_FILENAME= "parking_simulation_log.csv"
+# GATE_HEX_UUID = generate_gate_id()
+# GATE_DESC="Parking N1"
 
-# Conditions to Create a More realistic simultaion
+# Simulation DATA Mockup
+PARKING_DATA = None
+PARKING_LOT_SIZE = None
+PARKING_LOT_LOCATION = None
+GATE_HEX_UUID = None
+GATE_DESC= None
+SIMULATION_START=None
+SIMULATION_STOP=None
+
+
+# Simulator Conditions to Create a More realistic behavior
 RUSH_HOURS = [(7.5, 9), (13, 14.5)]  # Rush Hour Periods in Hours
 PEAK_MEAN = 8.25  # Rush Hour in the Morning
 PEAK_STD_DEV = 0.25  # Standard Deviation
@@ -32,8 +45,11 @@ MIN_PARKING_DURATION_IN_SECS = 900  # 15 minutes
 MIN_SEARCHING_DURATION_IN_SECS = 120  # 2 minutes
 HOURS_PROBABILITY = generate_entry_exit_hourly_probs()
 NON_RUSH_HOURS_PROB_DICT = {"entry_prob": 0.5, "exit_prob": 0.5, "is_rush": False}
+
+# Data Collector
 PARKING_ACTIVITY_FILENAME= "parking_simulation_log.csv"
-GATE_HEX_UUID = generate_gate_id()
+
+
 
 
 # FastAPI Instance
@@ -123,12 +139,33 @@ def prepare_parking_util_data():
         usage_rate= (len([vehicle for vehicle in PARKING_DATA if vehicle["status"] == "parked"])/PARKING_LOT_SIZE) * 100,
     )
         
-    return utilization    
+    return utilization  
+
+def prepare_gate_info():
+    gate_info =  ParkingGateInfo(
+        gate_id=GATE_HEX_UUID,
+        gate_desc=GATE_DESC,
+        latitude=PARKING_LOT_LOCATION["latitude"],
+        longitude=PARKING_LOT_LOCATION["longitude"],
+
+    )
+
+    return gate_info
 
 # Start a Simulation
 @router.on_event("startup")
 @repeat_every(seconds=10)  # every 10 seconds
 async def simulate_parking_activity():
+    """
+    Simulation Code
+    """
+
+    #TODO: Validate Globals Has been set by the /start_simulation call
+    if PARKING_DATA is None:
+        logger.warning("Initial Parking Info needed. Please use /start_sim")
+        return { "msg" : "use start_simulation to set the gate"}
+
+
     logger.info(
         f"Starting Parking Activity Sensor Simulation for a Lot of {PARKING_LOT_SIZE} spots located at {PARKING_LOT_LOCATION}"
     )
@@ -211,19 +248,63 @@ def index():
     }
 
 
-@router.get("/ping")
-def ping():
-    return {"message": "pong", "module": MODULE_NAME}
-
-
-@router.post("/start_simulation")
-async def start_simulation(location: ParkingLotLocation, parking_lot_size: int = 50):
+@router.post("/start_sim",status_code=status.HTTP_201_CREATED)
+async def start_simulation(parking:ParkingSimulation ):
     global PARKING_LOT_LOCATION
     global PARKING_LOT_SIZE
-    PARKING_LOT_LOCATION = location.dict()
-    PARKING_LOT_SIZE = parking_lot_size
-    return {"message": "Simulation started with new parking lot location"}
+    global PARKING_DATA
+    global PARKING_LOT_SIZE
+    global PARKING_LOT_LOCATION
+    global PARKING_ACTIVITY_FILENAME
+    global GATE_HEX_UUID
+    global GATE_DESC
+    global SIMULATION_START
 
+    # Set the values
+    PARKING_LOT_LOCATION = {}
+    PARKING_LOT_LOCATION["latitude"] = parking.latitude
+    PARKING_LOT_LOCATION["longitude"] = parking.longitude
+    PARKING_LOT_SIZE = parking.lot_size
+    PARKING_DATA = []
+    GATE_HEX_UUID = generate_gate_id()
+    GATE_DESC=parking.gate_desc
+    SIMULATION_START = datetime.datetime.now()
+
+    logger.info(f"Simulation started for parking lot at gate : {GATE_DESC}")
+    return {"message": f"Simulation started for parking lot at gate : {GATE_DESC}  "}
+
+
+@router.put("/stop_sim",status_code=status.HTTP_202_ACCEPTED)
+async def stop_simulation():
+    """
+    STOP All Simulations
+    """
+    global PARKING_LOT_LOCATION
+    global PARKING_LOT_SIZE
+    global PARKING_DATA
+    global PARKING_LOT_SIZE
+    global PARKING_LOT_LOCATION
+    global PARKING_ACTIVITY_FILENAME
+    global GATE_HEX_UUID
+    global GATE_DESC
+    global SIMULATION_START
+    global SIMULATION_STOP
+
+    # Set the values to None
+    PARKING_LOT_LOCATION = None
+    PARKING_LOT_SIZE = None
+    PARKING_DATA = None
+    PARKING_ACTIVITY_FILENAME=None
+    GATE_HEX_UUID = None
+    GATE_DESC=None
+    SIMULATION_STOP = datetime.datetime.now()
+
+    duration = SIMULATION_STOP - SIMULATION_START
+
+    duration.total_seconds()
+    logger.info(f"Simulation Stopped. Duration: {str(duration.total_seconds())} secs")
+
+    return {"message": f"Simulation Stopped. Duration: {str(duration.total_seconds())} secs"}
 
 @router.get("/available", response_model=ParkingOcuppancy)
 async def get_parking_spot_availability():
@@ -232,10 +313,17 @@ async def get_parking_spot_availability():
 
     return utilization
 
+
+
 @router.get("/detail", response_model=List[ParkingEntry])
 async def get_all_used_spot_detail():
     return PARKING_DATA
 
+
+@router.get("/gate", response_model=ParkingGateInfo)
+async def get_gate_info():
+    gate = prepare_gate_info()
+    return gate
 
 
 # WebSocket

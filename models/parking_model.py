@@ -24,3 +24,18 @@ class ParkingOcuppancy(BaseModel):
     spots_in_use: int = 0
     spots_avail: int = 0
     usage_rate: float = 0.0
+
+
+class ParkingGateInfo(BaseModel):
+    gate_id: str = ""
+    gate_desc: str = ""
+    latitude: float = 0.0
+    longitude: float = 0.0
+
+class ParkingSimulation(BaseModel):
+    lot_size: int = 0
+    gate_desc: str = ""
+    latitude: float = 0.0
+    longitude: float = 0.0
+
+
