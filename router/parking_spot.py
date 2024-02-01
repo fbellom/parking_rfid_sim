@@ -26,21 +26,11 @@ MODULE_TAGS = [MODULE_NAME]
 MODULE_DESCRIPTION = ""
 
 # Simulation DATA Mockup
-# PARKING_DATA = []
-# PARKING_LOT_SIZE = 250
-# PARKING_LOT_LOCATION = {"latitude": 18.40392191193637, "longitude": -66.04436176129046}
-# PARKING_ACTIVITY_FILENAME= "parking_simulation_log.csv"
-# GATE_HEX_UUID = generate_gate_id()
-# GATE_DESC="Parking N1"
-
-# Simulation DATA Mockup
 PARKING_DATA = None
 PARKING_LOT_SIZE = None
 PARKING_LOT_LOCATION = None
 GATE_HEX_UUID = None
 GATE_DESC = None
-SIMULATION_START = None
-SIMULATION_STOP = None
 
 
 # Simulator Conditions to Create a More realistic behavior
@@ -51,6 +41,8 @@ MIN_PARKING_DURATION_IN_SECS = 900  # 15 minutes
 MIN_SEARCHING_DURATION_IN_SECS = 120  # 2 minutes
 HOURS_PROBABILITY = generate_entry_exit_hourly_probs()
 NON_RUSH_HOURS_PROB_DICT = {"entry_prob": 0.5, "exit_prob": 0.5, "is_rush": False}
+SIMULATION_START = None
+SIMULATION_STOP = None
 
 # Data Collector
 PARKING_ACTIVITY_FILENAME = "parking_simulation_log.csv"
