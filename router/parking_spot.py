@@ -1,9 +1,8 @@
 import asyncio
-from fastapi import APIRouter, HTTPException, status, Body, WebSocket
+from fastapi import APIRouter, status, WebSocket
 from fastapi_utils.tasks import repeat_every
 from models.parking_model import (
     ParkingEntry,
-    ParkingLotLocation,
     ParkingOcuppancy,
     ParkingGateInfo,
     ParkingSimulation,
