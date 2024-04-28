@@ -34,16 +34,17 @@ def calculate_event_probability(current_time, peak_mean, peak_std_dev):
 
 def initialize_csv(filename: str):
     headers = [
-        "RFID",
-        "Size",
-        "Driver Name",
-        "Entry Time",
-        "Exit Time",
-        "Lat",
-        "Long",
-        "Status",
-        "Last Status Change",
-        "Gate",
+        "tag_id",
+        "size",
+        "tag_owner",
+        "entry_time",
+        "exit_time",
+        "location_lat",
+        "location_long",
+        "status",
+        "last_changed_at",
+        "reason",
+        "gate"
     ]
 
     file_exists = os.path.exists(filename)
